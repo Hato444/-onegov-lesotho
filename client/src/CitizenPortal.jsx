@@ -1,11 +1,16 @@
-import { useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Icon } from './icons.jsx';
+import { api } from './api.js';
+import { useToast } from './toast.jsx';
 
 const SERVICES = [
   'National ID Application', 'Passport Application', 'Police Clearance Request',
   'Driver Licence Renewal', 'Pension Registration', 'Birth Certificate',
 ];
-
+const DEPT_LABEL = {
+  homeaffairs: 'Home Affairs', pension: 'Pensions', finance: 'Finance',
+  police: 'Police', traffic: 'Traffic', passport: 'Passport',
+};
 const NAV = [
   ['dashboard', 'Dashboard', 'dashboard'],
   ['apply', 'Apply for Service', 'plus'],
@@ -14,20 +19,38 @@ const NAV = [
 ];
 
 export default function CitizenPortal({ user, onSignOut }) {
+  const toast = useToast();
   const [view, setView] = useState('dashboard');
   const [apps, setApps] = useState([]);
   const [service, setService] = useState(SERVICES[0]);
+  const [notes, setNotes] = useState('');
   const [notice, setNotice] = useState('');
   const [modal, setModal] = useState(false);
 
-  const pending = useMemo(() => apps.filter((a) => a.status !== 'Approved' && a.status !== 'Rejected').length, [apps]);
+  const load = () => api.citizenRequests().then((r) => setApps(r.requests)).catch((e) => toast(e.message, 'error'));
+  useEffect(() => { load(); }, []);
 
-  function apply(e) {
+  const pending = useMemo(() => apps.filter((a) => !['Completed', 'Rejected'].includes(a.status)).length, [apps]);
+
+  async function apply(e) {
     e.preventDefault();
-    const ref = 'APP-' + (1001 + apps.length);
-    setApps((list) => [{ ref, service, status: 'Submitted', at: 'Just now' }, ...list]);
-    setNotice('Application ' + ref + ' submitted. It has been routed to the responsible department.');
-    setView('apps');
+    try {
+      const { request } = await api.submitCitizenRequest({ service, message: notes.trim() });
+      setNotice('Application ' + request.id + ' submitted to ' + DEPT_LABEL[request.toDepartment] + '.');
+      setNotes('');
+      setView('apps');
+      load();
+    } catch (err) { toast(err.message, 'error'); }
+  }
+
+  async function respond(a) {
+    const text = window.prompt('Respond to ' + DEPT_LABEL[a.toDepartment] + ':', '');
+    if (!text?.trim()) return;
+    try {
+      await api.citizenRespond(a.id, { message: text.trim() });
+      load();
+      toast('Response sent.', 'success');
+    } catch (err) { toast(err.message, 'error'); }
   }
 
   let content;
@@ -36,12 +59,12 @@ export default function CitizenPortal({ user, onSignOut }) {
       <>
         <div className="card pad" style={{ marginBottom: 18, background: 'linear-gradient(120deg, var(--blue-900), var(--blue-700))', color: '#fff', border: 'none' }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: '#fff' }}>Citizen Dashboard</h1>
-          <p style={{ color: '#CBDAF3', marginTop: 4 }}>Welcome, {user.name} · National ID {user.nid}</p>
+          <p style={{ color: '#CBDAF3', marginTop: 4 }}>Welcome, {user.name} - National ID {user.nid}</p>
         </div>
         <div className="grid g4" style={{ marginBottom: 18 }}>
           <div className="card pad kpi"><div className="num">{apps.length}</div><div className="lbl">My Applications</div></div>
           <div className="card pad kpi"><div className="num">{pending}</div><div className="lbl">Pending Actions</div></div>
-          <div className="card pad kpi"><div className="num">{apps.filter((a) => a.status === 'Approved').length}</div><div className="lbl">Completed Services</div></div>
+          <div className="card pad kpi"><div className="num">{apps.filter((a) => a.status === 'Completed').length}</div><div className="lbl">Completed Services</div></div>
           <div className="card pad kpi"><div className="num">1</div><div className="lbl">Verified Identity</div></div>
         </div>
         <div className="grid g2">
@@ -56,8 +79,8 @@ export default function CitizenPortal({ user, onSignOut }) {
           <div className="card pad">
             <div className="section-title">Recent Applications</div>
             {apps.length ? apps.slice(0, 3).map((a) => (
-              <div key={a.ref} style={{ padding: '8px 0', borderBottom: '1px solid var(--line-soft)' }}>
-                <strong>{a.service}</strong> · {a.status}
+              <div key={a.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--line-soft)' }}>
+                <strong>{a.requestType}</strong> - {a.status}
               </div>
             )) : <p style={{ color: 'var(--ink-500)', marginTop: 8 }}>No applications yet.</p>}
             {notice && <p style={{ color: 'var(--green-700)', fontSize: 13, marginTop: 10 }}>{notice}</p>}
@@ -79,7 +102,7 @@ export default function CitizenPortal({ user, onSignOut }) {
           </div>
           <div className="form-group">
             <label>Notes</label>
-            <input type="text" placeholder="Optional details" />
+            <input type="text" value={notes} maxLength={1000} onChange={(e) => setNotes(e.target.value)} placeholder="Optional details" />
           </div>
           <button type="submit" className="btn btn-green">Submit application</button>
         </form>
@@ -88,14 +111,20 @@ export default function CitizenPortal({ user, onSignOut }) {
   } else if (view === 'apps') {
     content = (
       <div className="card">
-        <div className="pad"><div className="section-title">My Applications</div></div>
+        <div className="pad"><div className="section-title">My Applications</div><div className="section-sub">Status updates and responses from departments appear here.</div></div>
         <div style={{ overflowX: 'auto' }}>
           <table>
-            <thead><tr><th>Ref</th><th>Service</th><th>Status</th><th>Submitted</th></tr></thead>
+            <thead><tr><th>Ref</th><th>Service</th><th>Department</th><th>Status</th><th>Submitted</th><th>Response</th><th></th></tr></thead>
             <tbody>
               {apps.length ? apps.map((a) => (
-                <tr key={a.ref}><td>{a.ref}</td><td>{a.service}</td><td><span className="pill pill-blue">{a.status}</span></td><td>{a.at}</td></tr>
-              )) : <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--ink-500)', padding: 24 }}>No applications yet.</td></tr>}
+                <tr key={a.id}>
+                  <td>{a.id}</td><td>{a.requestType}</td><td>{DEPT_LABEL[a.toDepartment]}</td>
+                  <td><span className={'pill pill-' + (a.status === 'Completed' ? 'green' : a.status === 'Rejected' ? 'red' : 'blue')}>{a.status}</span></td>
+                  <td>{new Date(a.createdAt).toLocaleString()}</td>
+                  <td style={{ maxWidth: 320, fontSize: 12.5 }}>{a.response || '-'}</td>
+                  <td>{a.status === 'Information Required' && <button className="btn btn-outline btn-sm" onClick={() => respond(a)}>Respond</button>}</td>
+                </tr>
+              )) : <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--ink-500)', padding: 24 }}>No applications yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -129,7 +158,7 @@ export default function CitizenPortal({ user, onSignOut }) {
               <Icon name={icon} size={18} /><span>{label}</span>
             </button>
           ))}
-          <div className="sidebar-foot">Government of the Kingdom of Lesotho<br />Citizen session · v2.5</div>
+          <div className="sidebar-foot">Government of the Kingdom of Lesotho<br />Citizen session v2.5</div>
         </nav>
         <div className="main">
           <header className="topbar">
@@ -151,7 +180,7 @@ export default function CitizenPortal({ user, onSignOut }) {
             <p style={{ fontSize: 14, color: 'var(--ink-600)', marginBottom: 20 }}>You will return to the portal selection screen.</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={onSignOut}>Sign out</button>
+              <button className="btn btn-primary" onClick={async () => { await api.logout().catch(() => {}); onSignOut(); }}>Sign out</button>
             </div>
           </div>
         </div>

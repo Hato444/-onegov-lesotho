@@ -1,4 +1,4 @@
-async function request(path, { method = 'GET', body } = {}) {
+﻿async function request(path, { method = 'GET', body } = {}) {
   const res = await fetch('/api' + path, {
     method,
     credentials: 'same-origin',
@@ -28,4 +28,10 @@ export const api = {
   citizen: (id) => request('/citizens/' + encodeURIComponent(id)),
   search: (params) => request('/citizens/search?' + new URLSearchParams(params)),
   submitRequest: (body) => request('/requests', { method: 'POST', body }),
+  citizenRequests: () => request('/citizen/requests'),
+  submitCitizenRequest: (body) => request('/citizen/requests', { method: 'POST', body }),
+  citizenRespond: (id, body) => request('/citizen/requests/' + encodeURIComponent(id) + '/respond', { method: 'POST', body }),
+  deptRequests: () => request('/dept/requests'),
+  sendDeptRequest: (body) => request('/dept/requests', { method: 'POST', body }),
+  updateDeptRequest: (id, body) => request('/dept/requests/' + encodeURIComponent(id), { method: 'PATCH', body }),
 };

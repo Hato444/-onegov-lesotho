@@ -167,3 +167,131 @@ export function DeptActionModal({ modal, citizen, onClose }) {
     </ModalShell>
   );
 }
+
+const REQUEST_TYPES = ['Identity Verification', 'Records Check', 'Document Verification', 'Clearance Assistance', 'Other'];
+const STATUSES = ['Pending', 'In Progress', 'Information Required', 'Completed', 'Rejected'];
+
+export function SendDeptRequestModal({ onClose, citizen, deptId }) {
+  const toast = useToast();
+  const [toDepartment, setToDepartment] = useState('');
+  const [requestType, setRequestType] = useState(REQUEST_TYPES[0]);
+  const [message, setMessage] = useState('');
+  const [priority, setPriority] = useState('Normal');
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e?.preventDefault();
+    if (!citizen) { toast('Select a citizen first.', 'error'); return; }
+    if (!toDepartment || !message.trim()) { toast('Choose a department and enter a reason.', 'error'); return; }
+    setBusy(true);
+    try {
+      await api.sendDeptRequest({ toDepartment, citizenId: citizen.id, requestType, message: message.trim(), priority });
+      onClose();
+      toast('Department request sent to ' + DEPTS.find((d) => d.id === toDepartment).name + '.', 'success');
+    } catch (err) { setBusy(false); toast(err.message, 'error'); }
+  }
+
+  return (
+    <ModalShell onClose={onClose}>
+      <div className="modal-head">
+        <div>
+          <h2 id="modal-title" style={{ fontSize: 18 }}>Send department request</h2>
+          <p style={{ color: 'var(--ink-500)', fontSize: 13, marginTop: 4 }}>
+            {citizen ? `Citizen: ${fullName(citizen)} (${citizen.nid})` : 'No citizen selected'}
+          </p>
+        </div>
+        <CloseButton onClose={onClose} />
+      </div>
+      <div className="modal-body">
+        <form onSubmit={submit} noValidate>
+          <div className="form-group">
+            <label className="req">To department</label>
+            <select value={toDepartment} onChange={(e) => setToDepartment(e.target.value)}>
+              <option value="">Select department...</option>
+              {DEPTS.filter((d) => d.id !== deptId).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="req">Request type</label>
+            <select value={requestType} onChange={(e) => setRequestType(e.target.value)}>
+              {REQUEST_TYPES.map((t) => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="req">Message / reason</label>
+            <textarea value={message} maxLength={1000} onChange={(e) => setMessage(e.target.value)} placeholder="Explain what you need from the other department." />
+          </div>
+          <div className="form-group">
+            <label>Priority</label>
+            <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+              <option>Normal</option><option>Urgent</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div className="modal-foot">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" onClick={submit} disabled={busy}>Send request</button>
+      </div>
+    </ModalShell>
+  );
+}
+
+export function DeptRequestModal({ request, canRespond, onClose, onSaved }) {
+  const toast = useToast();
+  const [status, setStatus] = useState(request.status);
+  const [response, setResponse] = useState(request.response || '');
+  const [busy, setBusy] = useState(false);
+  const deptName = (id) => DEPTS.find((d) => d.id === id)?.name || 'Citizen';
+
+  async function save() {
+    setBusy(true);
+    try {
+      const { request: updated } = await api.updateDeptRequest(request.id, { status, response });
+      toast('Request ' + updated.id + ' updated.', 'success');
+      onSaved?.(updated);
+      onClose();
+    } catch (err) { setBusy(false); toast(err.message, 'error'); }
+  }
+
+  return (
+    <ModalShell onClose={onClose}>
+      <div className="modal-head">
+        <div>
+          <h2 id="modal-title" style={{ fontSize: 18 }}>Request {request.id}</h2>
+          <p style={{ color: 'var(--ink-500)', fontSize: 13, marginTop: 4 }}>
+            {deptName(request.fromDepartment)} {'->'} {deptName(request.toDepartment)} | {request.priority}
+          </p>
+        </div>
+        <CloseButton onClose={onClose} />
+      </div>
+      <div className="modal-body">
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          <div><strong>Citizen:</strong> {request.citizenName}</div>
+          <div><strong>Type:</strong> {request.requestType}</div>
+          <div><strong>Status:</strong> {request.status}</div>
+          <div><strong>Message:</strong> {request.message}</div>
+          {request.response && <div style={{ marginTop: 8 }}><strong>Response:</strong> {request.response}</div>}
+        </div>
+        {canRespond && (
+          <div style={{ marginTop: 18 }}>
+            <div className="form-group">
+              <label>Status</label>
+              <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                {STATUSES.map((s) => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Response</label>
+              <textarea value={response} maxLength={2000} onChange={(e) => setResponse(e.target.value)} placeholder="Write the response for the sending department." />
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="modal-foot">
+        <button className="btn btn-ghost" onClick={onClose}>{canRespond ? 'Cancel' : 'Close'}</button>
+        {canRespond && <button className="btn btn-primary" onClick={save} disabled={busy}>Save response</button>}
+      </div>
+    </ModalShell>
+  );
+}

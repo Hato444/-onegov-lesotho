@@ -1,4 +1,4 @@
-// UI constants copied from the prototype.
+﻿// UI constants copied from the prototype.
 export const DEPTS = [
   {id:'homeaffairs', name:'Home Affairs', desc:'Civil registration, national ID and vital records.', color:'#153E82', soft:'#E6EDF9', icon:'idcard'},
   {id:'pension', name:'Pensions', desc:'Public service pensions, contributions and payouts.', color:'#00622F', soft:'#DFF3E7', icon:'wallet'},
@@ -10,6 +10,7 @@ export const DEPTS = [
 export const NAV_MAIN = [
   {v:'dashboard', label:'Dashboard', icon:'dashboard'},
   {v:'search', label:'Citizen Search', icon:'search'},
+  {v:'requests', label:'Requests', icon:'doc'},
   {v:'notifications', label:'Notification Center', icon:'bell'},
   {v:'analytics', label:'Analytics', icon:'trend'},
 ];
@@ -24,6 +25,7 @@ export const NAV_DEPTS = [
 export const VIEW_TITLES = {
   dashboard:['Dashboard', 'Overview of all departments'],
   search:['Citizen Search', 'Find a citizen record across the registry'],
+  requests:['Requests', 'Received and sent department requests'],
   profile:['Citizen Profile', 'Unified record'],
   homeaffairs:['Home Affairs', 'Civil registration & national ID'],
   pension:['Pensions', 'Public service pension administration'],
@@ -102,7 +104,7 @@ export const DEPT_FORM_FIELDS = {
   'traffic:0':[['National ID','text',true],['Action','select',true,['Issue new licence','Renew licence','Suspend licence']],['Licence class','select',true,['Code A','Code B','Code C','Code EB','Code EC']]],
   'traffic:1':[['Owner National ID','text',true],['Vehicle make & model','text',true],['Chassis number','text',true],['Registration type','select',true,['New registration','Ownership transfer']]],
   'traffic:2':[['National ID or licence plate','text',true],['Fine reference (if known)','text',false]],
-  'traffic:3':[['Licence plate','text',true],['Inspection date','date',true],['Result','select',true,['Pass','Fail — reinspection required']]],
+  'traffic:3':[['Licence plate','text',true],['Inspection date','date',true],['Result','select',true,['Pass','Fail â€” reinspection required']]],
   'passport:0':[['National ID','text',true],['Passport type','select',true,['Ordinary','Official','Diplomatic']],['Urgency','select',true,['Standard (10 days)','Express (3 days)']]],
   'passport:1':[['Existing passport number','text',true],['National ID','text',true]],
   'passport:2':[['Application reference number','text',true]],
@@ -130,3 +132,4 @@ export const MODULE_TABLE = {
   traffic: { cols: ['Citizen', 'Licence', 'Class', 'Vehicles', 'Unpaid fines'], rows: (c) => [fullName(c), c.traffic.licence, c.traffic.class, String(c.traffic.vehicles.length), String(c.traffic.fines.filter((f) => f.status !== 'Paid').length)] },
   passport: { cols: ['Citizen', 'Passport No.', 'Status', 'Expiry'], rows: (c) => [fullName(c), c.passportRec.number, c.passportRec.status, c.passportRec.expiry] },
 };
+

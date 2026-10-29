@@ -1,4 +1,4 @@
-import { Icon } from '../icons.jsx';
+﻿import { Icon } from '../icons.jsx';
 import { PROFILE_TABS } from '../constants.js';
 import { st, fullName, initials } from '../util.js';
 import { useToast } from '../toast.jsx';
@@ -14,7 +14,7 @@ const Head = ({ title, sync }) => <div style={{ marginBottom: 18 }}><div classNa
 const Sub = ({ children }) => <div style={st('font-weight:700; font-size:13.5px; margin-bottom:8px;')}>{children}</div>;
 const None = ({ children }) => <p style={st('color:var(--ink-500); font-size:13px;')}>{children}</p>;
 const Bullets = ({ items, empty }) => items.length
-  ? items.map((x, i) => <div key={i} style={st('font-size:13.5px; padding:6px 0; border-bottom:1px solid var(--line-soft);')}>• {x}</div>)
+  ? items.map((x, i) => <div key={i} style={st('font-size:13.5px; padding:6px 0; border-bottom:1px solid var(--line-soft);')}>- {x}</div>)
   : <None>{empty}</None>;
 const Block = ({ children }) => <div style={{ marginTop: 16 }}>{children}</div>;
 
@@ -23,7 +23,7 @@ function Tab({ c, tab }) {
     case 'personal':
       return (
         <>
-          <Head title="Personal information" sync="Home Affairs Civil Registry" />
+          <Head title="Basic identity (shared)" sync="Home Affairs Civil Registry" />
           <div className="grid g2">
             <div>
               <KV label="Full name">{fullName(c)}</KV><KV label="Gender">{c.gender}</KV><KV label="Date of birth">{c.dob}</KV>
@@ -34,16 +34,6 @@ function Tab({ c, tab }) {
               <KV label="Marital status">{c.family.maritalStatus}</KV><KV label="Spouse">{c.family.spouse}</KV>
             </div>
           </div>
-          <div style={{ marginTop: 18 }}>
-            <div className="section-title" style={{ marginBottom: 8 }}>Family information</div>
-            {c.family.children.length
-              ? <ul style={st('display:flex; flex-direction:column; gap:6px;')}>{c.family.children.map((ch) => <li key={ch} style={{ fontSize: 13.5 }}>• {ch}</li>)}</ul>
-              : <None>No dependants on record.</None>}
-          </div>
-          <div style={{ marginTop: 18 }}>
-            <div className="section-title" style={{ marginBottom: 8 }}>Employment information</div>
-            <KV label="Employer">{c.employment.employer}</KV><KV label="Position">{c.employment.position}</KV><KV label="Status">{c.employment.status}</KV>
-          </div>
         </>
       );
     case 'finance':
@@ -52,8 +42,8 @@ function Tab({ c, tab }) {
           <Head title="Finance" sync="Ministry of Finance" />
           <KV label="Salary verified">{c.finance.salaryVerified ? <span className="pill pill-green">Verified</span> : <span className="pill pill-amber">Unverified</span>}</KV>
           <KV label="Monthly salary">{c.finance.monthlySalary}</KV>
-          <Block><Sub>Loans</Sub>{c.finance.loans.length ? c.finance.loans.map((l) => <KV key={l.lender} label={l.lender}>{l.balance} — {l.status}</KV>) : <None>No active loans on record.</None>}</Block>
-          <Block><Sub>Debts</Sub>{c.finance.debts.length ? c.finance.debts.map((d) => <KV key={d.creditor} label={d.creditor}>{d.amount} — {d.status}</KV>) : <None>No outstanding debts on record.</None>}</Block>
+          <Block><Sub>Loans</Sub>{c.finance.loans.length ? c.finance.loans.map((l) => <KV key={l.lender} label={l.lender}>{l.balance} - {l.status}</KV>) : <None>No active loans on record.</None>}</Block>
+          <Block><Sub>Debts</Sub>{c.finance.debts.length ? c.finance.debts.map((d) => <KV key={d.creditor} label={d.creditor}>{d.amount} - {d.status}</KV>) : <None>No outstanding debts on record.</None>}</Block>
         </>
       );
     case 'pension':
@@ -70,7 +60,7 @@ function Tab({ c, tab }) {
           <Head title="Police" sync="Lesotho Mounted Police Service" />
           <KV label="Clearance status">{c.police.clearance === 'Clean record' ? <span className="pill pill-green">Clean record</span> : <span className="pill pill-amber">{c.police.clearance}</span>}</KV>
           <KV label="Last background check">{c.police.lastCheck}</KV>
-          <Block><Sub>Incident history</Sub>{c.police.incidents.length ? c.police.incidents.map((i) => <KV key={i.date + i.type} label={i.type}>{i.date} — {i.status}</KV>) : <None>No incidents on record.</None>}</Block>
+          <Block><Sub>Incident history</Sub>{c.police.incidents.length ? c.police.incidents.map((i) => <KV key={i.date + i.type} label={i.type}>{i.date} - {i.status}</KV>) : <None>No incidents on record.</None>}</Block>
         </>
       );
     case 'traffic':
@@ -80,7 +70,7 @@ function Tab({ c, tab }) {
           <KV label="Driver licence">{c.traffic.licence}</KV><KV label="Licence class">{c.traffic.class}</KV>
           <Block><Sub>Registered vehicles</Sub><Bullets items={c.traffic.vehicles} empty="No vehicles registered." /></Block>
           <Block><Sub>Fines</Sub>{c.traffic.fines.length ? c.traffic.fines.map((f) => (
-            <KV key={f.desc} label={f.desc}>{f.amount} — {f.status === 'Paid' ? <span className="pill pill-green">Paid</span> : <span className="pill pill-red">Unpaid</span>}</KV>
+            <KV key={f.desc} label={f.desc}>{f.amount} - {f.status === 'Paid' ? <span className="pill pill-green">Paid</span> : <span className="pill pill-red">Unpaid</span>}</KV>
           )) : <None>No fines on record.</None>}</Block>
         </>
       );
@@ -99,7 +89,7 @@ function Tab({ c, tab }) {
   }
 }
 
-export default function Profile({ citizen: c, tab, setTab, go }) {
+export default function Profile({ citizen: c, tab, setTab, go, user, onRequestInfo }) {
   const toast = useToast();
   if (!c) {
     return (
@@ -107,6 +97,8 @@ export default function Profile({ citizen: c, tab, setTab, go }) {
         <button className="btn btn-primary" onClick={() => go('search')} style={{ marginTop: 14 }}>Go to search</button></div>
     );
   }
+  const allowedTabs = PROFILE_TABS.filter((t) => t.v === 'personal' || t.v === user?.deptId);
+  const activeTab = allowedTabs.some((t) => t.v === tab) ? tab : 'personal';
   const row = (label, val) => <div style={st('display:flex; justify-content:space-between; padding:6px 0;')}><span style={{ color: 'var(--ink-500)' }}>{label}</span><strong>{val}</strong></div>;
   return (
     <>
@@ -123,17 +115,21 @@ export default function Profile({ citizen: c, tab, setTab, go }) {
             {c.flags.missingDocs > 0 ? <span className="pill pill-amber">{c.flags.missingDocs} doc missing</span> : <span className="pill pill-green">Record complete</span>}
           </div>
           <div style={st('text-align:left; margin-top:18px; border-top:1px solid var(--line); padding-top:14px; font-size:13px;')}>
-            {row('National ID', c.nid)}{row('Passport', c.passport || '—')}{row('Employee No.', c.empNo || '—')}{row('Date of birth', c.dob)}
+            {row('National ID', c.nid)}{row('Passport', c.passport || '-')}{row('Employee No.', c.empNo || '-')}{row('Date of birth', c.dob)}
           </div>
-          <button className="btn btn-outline btn-sm" style={{ width: '100%', marginTop: 14 }} onClick={() => toast('This citizen is now active across all department modules.', 'success')}>
-            <Icon name="flow" size={15} /> Use across modules
+          <button className="btn btn-primary btn-sm" style={{ width: '100%', marginTop: 14 }} onClick={onRequestInfo}>
+            <Icon name="flow" size={15} /> Send department request
           </button>
+          <button className="btn btn-outline btn-sm" style={{ width: '100%', marginTop: 8 }} onClick={() => toast('This citizen is now active across your department module.', 'success')}>
+            <Icon name="flow" size={15} /> Use in my department
+          </button>
+          <div style={st('font-size:11.5px; color:var(--ink-500); margin-top:10px;')}>Other departments' records stay private. Send a request to ask for them.</div>
         </div>
         <div>
           <div className="tabs">
-            {PROFILE_TABS.map((t) => <button key={t.v} className={'tab ' + (tab === t.v ? 'active' : '')} onClick={() => setTab(t.v)}>{t.label}</button>)}
+            {allowedTabs.map((t) => <button key={t.v} className={'tab ' + (activeTab === t.v ? 'active' : '')} onClick={() => setTab(t.v)}>{t.label}</button>)}
           </div>
-          <div className="card pad"><Tab c={c} tab={tab} /></div>
+          <div className="card pad"><Tab c={c} tab={activeTab} /></div>
         </div>
       </div>
     </>

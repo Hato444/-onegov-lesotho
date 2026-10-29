@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Icon, IconFor } from '../icons.jsx';
 import { ForgotModal } from '../components/Modals.jsx';
 import { api } from '../api.js';
@@ -57,18 +57,22 @@ export default function Login({ onLoggedIn }) {
 
   async function submitCitizen(e) {
     e.preventDefault();
-    if (username.trim() !== '001' || password !== 'citizen123') {
-      setError('Invalid National ID or password.');
+    if (!username.trim() || !password.trim()) {
+      setError('Enter both your National ID and password to continue.');
       return;
     }
     setError('');
     setBusy(true);
-    onLoggedIn({
-      portal: 'citizen', username: '001', name: 'Teboho Mokoena',
-      role: 'Citizen', initials: 'TM', nid: '001',
-    });
-    toast('Welcome, Teboho. Your citizen dashboard is ready.', 'success');
+    try {
+      const { user } = await api.login({ username: username.trim(), password });
+      onLoggedIn(user);
+      toast('Welcome, ' + user.name.split(' ')[0] + '. Your citizen dashboard is ready.', 'success');
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
   }
+
 
   const stat = (n, label) => (
     <div>
@@ -85,7 +89,7 @@ export default function Login({ onLoggedIn }) {
             <div className="gov-mark"><Icon name="shield" size={32} /></div>
             <div className="stripe3"><span style={{ background: '#1D52A8' }} /><span style={{ background: '#fff' }} /><span style={{ background: '#00843D' }} /></div>
             <h1 className="login-title" style={{ color: '#fff', fontSize: 34 }}>OneGov Lesotho</h1>
-            <p className="tag">Integrated Government Services Platform — one secure identity connecting Home Affairs, Pensions, Finance, Police, Traffic and Passport Services.</p>
+            <p className="tag">Integrated Government Services Platform â€” one secure identity connecting Home Affairs, Pensions, Finance, Police, Traffic and Passport Services.</p>
           </div>
           <div style={st('display:flex; gap:28px; flex-wrap:wrap;')}>
             {stat('6', 'Departments unified')}
@@ -105,7 +109,7 @@ export default function Login({ onLoggedIn }) {
                 <button type="button" className="btn btn-outline" style={{ width: '100%', padding: 14 }} onClick={() => chooseRole('officer')}>
                   <Icon name="shield" size={17} /> Government Staff Login
                 </button>
-                <div className="helpbox" style={{ marginTop: 20 }}><IconFor name="info" /><span>Citizen: <strong>001</strong> / <strong>citizen123</strong><br />Officer: <strong>GOV-04417</strong> / <strong>OneGov!2026</strong> · Department: <strong>Police</strong></span></div>
+                <div className="helpbox" style={{ marginTop: 20 }}><IconFor name="info" /><span>Citizen: <strong>001</strong> / <strong>citizen123</strong><br />Officer: <strong>GOV-04417</strong> / <strong>OneGov!2026</strong> Â· Department: <strong>Police</strong></span></div>
               </>
             )}
 
@@ -146,7 +150,7 @@ export default function Login({ onLoggedIn }) {
                   <div className="form-group">
                     <label htmlFor="lf-dept" className="req">Department</label>
                     <select id="lf-dept" value={department} onChange={(e) => setDepartment(e.target.value)}>
-                      <option value="">Select your department…</option>
+                      <option value="">Select your departmentâ€¦</option>
                       {DEPARTMENTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                     <div className="form-hint">Must match your assigned department.</div>
@@ -160,7 +164,7 @@ export default function Login({ onLoggedIn }) {
                   </div>
                   <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: 13 }} disabled={busy}>Sign in</button>
                 </form>
-                <div className="helpbox"><IconFor name="info" /><span>Demo officer: <strong>GOV-04417</strong> / <strong>OneGov!2026</strong> · Department: <strong>Police</strong></span></div>
+                <div className="helpbox"><IconFor name="info" /><span>Demo officer: <strong>GOV-04417</strong> / <strong>OneGov!2026</strong> Â· Department: <strong>Police</strong></span></div>
               </>
             )}
           </div>
@@ -170,3 +174,4 @@ export default function Login({ onLoggedIn }) {
     </>
   );
 }
+

@@ -1,29 +1,30 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Icon } from './icons.jsx';
 import { NAV_MAIN, NAV_DEPTS, VIEW_TITLES } from './constants.js';
 import { api } from './api.js';
 import { useToast } from './toast.jsx';
 import { onActivate } from './util.js';
-import { ConfirmModal, DeptActionModal } from './components/Modals.jsx';
+import { ConfirmModal, DeptActionModal, SendDeptRequestModal } from './components/Modals.jsx';
 import Dashboard from './views/Dashboard.jsx';
 import Search from './views/Search.jsx';
 import Profile from './views/Profile.jsx';
 import DeptModule from './views/DeptModule.jsx';
 import Notifications from './views/Notifications.jsx';
 import Analytics from './views/Analytics.jsx';
+import Requests from './views/Requests.jsx';
 
-const DEPT_VIEWS = NAV_DEPTS.map((n) => n.v);
 const EMPTY_SEARCH = { type: 'nid', value: '', results: null, attempted: false, advOpen: false, filters: { district: '', gender: '', flags: '' } };
 
 export default function Portal({ user, onSignOut }) {
   const toast = useToast();
   const [view, setView] = useState('dashboard');
-  const [citizen, setCitizen] = useState(null); // the active citizen shared across modules
+  const [citizen, setCitizen] = useState(null);
   const [profileTab, setProfileTab] = useState('personal');
   const [notifications, setNotifications] = useState([]);
   const [search, setSearch] = useState(EMPTY_SEARCH);
   const [modal, setModal] = useState(null);
   const [topQuery, setTopQuery] = useState('');
+  const myDepts = NAV_DEPTS.filter((n) => n.v === user.deptId);
 
   useEffect(() => { api.notifications().then((r) => setNotifications(r.notifications)).catch(() => {}); }, []);
 
@@ -97,14 +98,17 @@ export default function Portal({ user, onSignOut }) {
   let content;
   if (view === 'dashboard') content = <Dashboard user={user} notifications={notifications} go={go} />;
   else if (view === 'search') content = <Search search={search} setSearch={setSearch} runSearch={() => runSearch()} openProfile={openProfile} go={go} />;
-  else if (view === 'profile') content = <Profile citizen={citizen} tab={profileTab} setTab={setProfileTab} go={go} />;
-  else if (DEPT_VIEWS.includes(view)) {
+  else if (view === 'profile') content = <Profile citizen={citizen} tab={profileTab} setTab={setProfileTab} go={go} user={user} onRequestInfo={() => setModal({ kind: 'deptrequest' })} />;
+  else if (view === user.deptId) {
     content = <DeptModule id={view} citizen={citizen} go={go} openProfile={openProfile} onAction={openAction}
       clearContext={() => { setCitizen(null); toast('Citizen context cleared.'); }}
-      viewContextProfile={() => { setProfileTab('personal'); go('profile'); }} />;
+      viewContextProfile={() => { setProfileTab('personal'); go('profile'); }}
+      onRequestInfo={() => setModal({ kind: 'deptrequest' })} />;
   }
+  else if (view === 'requests') content = <Requests user={user} go={go} />;
   else if (view === 'notifications') content = <Notifications notifications={notifications} go={go} openProfile={openProfile} />;
   else if (view === 'analytics') content = <Analytics go={go} />;
+  else content = <Dashboard user={user} notifications={notifications} go={go} />;
 
   return (
     <>
@@ -116,9 +120,9 @@ export default function Portal({ user, onSignOut }) {
           </div>
           <div className="navsection-label">Overview</div>
           {NAV_MAIN.map(navItem)}
-          <div className="navsection-label">Departments</div>
-          {NAV_DEPTS.map(navItem)}
-          <div className="sidebar-foot">Government of the Kingdom of Lesotho<br />Secure session · v2.4</div>
+          <div className="navsection-label">My Department</div>
+          {myDepts.map(navItem)}
+          <div className="sidebar-foot">Government of the Kingdom of Lesotho<br />Secure session v2.4</div>
         </nav>
         <div className="main">
           <header className="topbar">
@@ -134,7 +138,7 @@ export default function Portal({ user, onSignOut }) {
             </button>
             <div className="user-chip" tabIndex={0} role="button" aria-haspopup="true" onClick={askSignOut} onKeyDown={onActivate(askSignOut)}>
               <div className="avatar">{user.initials}</div>
-              <div><div className="un">{user.name}</div><div className="rl">{user.role}</div></div>
+              <div><div className="un">{user.name}</div><div className="rl">{user.role}{user.deptId ? ' - ' + (NAV_DEPTS.find((d) => d.v === user.deptId)?.label || '') + ' Workspace' : ''}</div></div>
               <Icon name="chevron" size={14} />
             </div>
           </header>
@@ -143,6 +147,7 @@ export default function Portal({ user, onSignOut }) {
       </div>
       {modal?.kind === 'confirm' && <ConfirmModal modal={modal} onClose={closeModal} onConfirm={confirmModal} />}
       {modal?.kind === 'deptaction' && <DeptActionModal key={modal.deptId + modal.actionIndex} modal={modal} citizen={citizen} onClose={closeModal} />}
+      {modal?.kind === 'deptrequest' && <SendDeptRequestModal citizen={citizen} deptId={user.deptId} onClose={closeModal} />}
     </>
   );
 }

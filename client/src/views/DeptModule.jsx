@@ -4,7 +4,7 @@ import { DEPTS, MODULE_ACTIONS, MODULE_TABLE } from '../constants.js';
 import { api } from '../api.js';
 import { st, fullName, initials, onActivate } from '../util.js';
 
-export default function DeptModule({ id, citizen, go, openProfile, onAction, clearContext, viewContextProfile }) {
+export default function DeptModule({ id, citizen, go, openProfile, onAction, clearContext, viewContextProfile, onRequestInfo }) {
   const dept = DEPTS.find((d) => d.id === id);
   const actions = MODULE_ACTIONS[id];
   const tbl = MODULE_TABLE[id];
@@ -25,6 +25,7 @@ export default function DeptModule({ id, citizen, go, openProfile, onAction, cle
           </div>
           <div className="cc-actions">
             <button className="btn btn-ghost btn-sm" style={ghost} onClick={viewContextProfile}>View profile</button>
+            <button className="btn btn-ghost btn-sm" style={ghost} onClick={onRequestInfo}>Request information</button>
             <button className="btn btn-ghost btn-sm" style={ghost} onClick={clearContext}>Clear</button>
           </div>
         </div>
